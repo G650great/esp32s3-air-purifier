@@ -32,6 +32,6 @@ main/项目bug.txt
 # Header files (not uploaded)
 *.h
 
-# Local config (private - contains WiFi password)
+# Local config
 main/local_config.h
 !main/local_config.h.example
