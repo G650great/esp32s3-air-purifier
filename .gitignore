@@ -1,0 +1,34 @@
+# Build output
+build/
+sdkconfig
+sdkconfig.old
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ESP-IDF
+*.bin
+*.elf
+*.map
+*.o
+*.a
+*.d
+
+# Test files
+main/test.c
+main/wifitest.c
+main/bttest.c
+main/oled_test.c
+main/项目bug.txt
+
+# Local config (private - contains WiFi password)
+main/local_config.h
+!main/local_config.h.example

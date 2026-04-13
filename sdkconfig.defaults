@@ -1,0 +1,4 @@
+CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240=y
+CONFIG_ESptoolpy_flashsize_4MB=y
+config_log_default_level_info=y
+config_log_colors=n
