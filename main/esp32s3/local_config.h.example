@@ -1,0 +1,18 @@
+#ifndef _LOCAL_CONFIG_H_
+#define _LOCAL_CONFIG_H_
+
+// ===============================================
+// 本地配置文件 - 不上传到GitHub
+// ===============================================
+// 请填入您的实际WiFi和MQTT配置
+// ===============================================
+
+// WiFi配置
+#define LOCAL_WIFI_SSID     "YOUR_WIFI_SSID"
+#define LOCAL_WIFI_PASSWORD  "YOUR_WIFI_PASSWORD"
+
+// MQTT配置
+#define LOCAL_MQTT_BROKER   "mqtt://YOUR_BROKER"
+#define LOCAL_MQTT_PORT      1883
+
+#endif // _LOCAL_CONFIG_H_
