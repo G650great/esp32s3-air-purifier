@@ -29,6 +29,9 @@ main/bttest.c
 main/oled_test.c
 main/项目bug.txt
 
+# Header files (not uploaded)
+*.h
+
 # Local config (private - contains WiFi password)
 main/local_config.h
 !main/local_config.h.example
