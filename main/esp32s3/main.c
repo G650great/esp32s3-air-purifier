@@ -27,6 +27,16 @@ static int shared_gas_mv = -1;
 static float shared_gas_ppm = -1.0f;
 static int wifi_connected = 0;
 
+void display_detail_screen(float temp, float humi, uint8_t fan_speed, int auto_mode, int gas_raw, int gas_mv, float gas_ppm, int wifi_connected);
+
+#define UI_SCREEN_COUNT 2
+#define UI_AUTO_SWITCH_MS 6000
+#define UI_MANUAL_PAUSE_MS 15000
+
+static volatile uint8_t ui_screen = 0;
+static volatile TickType_t ui_last_switch_tick = 0;
+static volatile TickType_t ui_pause_until_tick = 0;
+
 static void key_event_handler(uint8_t event, uint8_t key_id) {
     if (key_id == KEY_ID_10) {
         if (event == KEY_EVENT_SHORT_PRESS) {
@@ -51,12 +61,20 @@ static void key_event_handler(uint8_t event, uint8_t key_id) {
                 if (fan_speed > 0) {
                     fan_set_speed(fan_speed);
                 }
+                ui_screen = 0;
+                ui_last_switch_tick = xTaskGetTickCount();
+                ui_pause_until_tick = 0;
             } else {
                 ESP_LOGI(TAG, "KEY11: Power OFF - turning off display and fan");
                 fan_set_speed(0);
                 oled_off();
                 // ws2812_off();
             }
+        } else if (event == KEY_EVENT_LONG_PRESS) {
+            TickType_t now = xTaskGetTickCount();
+            ui_screen = (ui_screen + 1) % UI_SCREEN_COUNT;
+            ui_last_switch_tick = now;
+            ui_pause_until_tick = now + pdMS_TO_TICKS(UI_MANUAL_PAUSE_MS);
         }
     }
 }
@@ -111,6 +129,8 @@ static void sensor_task(void *arg) {
     float gas_ppm;
     static uint8_t last_auto_fan_speed = 0;
 
+    ui_last_switch_tick = xTaskGetTickCount();
+
     while (1) {
         if (mq135_read_data(&gas_raw, &gas_mv, &gas_ppm) == 0) {
             shared_gas_raw = gas_raw;
@@ -143,7 +163,16 @@ static void sensor_task(void *arg) {
                     ESP_LOGI(TAG, "Auto mode: fan_speed=%d", fan_speed);
                 }
             }
-            display_main_dashboard(shared_temp, shared_humi, fan_speed, auto_mode, shared_gas_raw, wifi_connected);
+            TickType_t now = xTaskGetTickCount();
+            if (now >= ui_pause_until_tick && (now - ui_last_switch_tick) >= pdMS_TO_TICKS(UI_AUTO_SWITCH_MS)) {
+                ui_screen = (ui_screen + 1) % UI_SCREEN_COUNT;
+                ui_last_switch_tick = now;
+            }
+            if (ui_screen == 0) {
+                display_main_dashboard(shared_temp, shared_humi, fan_speed, auto_mode, shared_gas_raw, wifi_connected);
+            } else {
+                display_detail_screen(shared_temp, shared_humi, fan_speed, auto_mode, shared_gas_raw, shared_gas_mv, shared_gas_ppm, wifi_connected);
+            }
         }
         
         vTaskDelay(pdMS_TO_TICKS(2000));
