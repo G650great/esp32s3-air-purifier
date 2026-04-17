@@ -24,59 +24,47 @@ void display_splash_screen(void) {
     vTaskDelay(pdMS_TO_TICKS(3000));
 }
 
-static const char* get_air_quality_level(int gas_raw) {
-    if (gas_raw < 0) {
-        return "N/A";
-    } else if (gas_raw == 0) {
-        return "POOR";
-    } else {
-        return "GOOD";
-    }
-}
-
 void display_main_dashboard(float temp, float humi, uint8_t fan_speed, int auto_mode, int gas_raw, int wifi_connected) {
     char buf[32];
-    
     oled_clear();
     
-    if (wifi_connected) {
-        oled_draw_string(2, 2, "[W]");
-    } else {
-        oled_draw_string(2, 2, "[ ]");
-    }
+    // 1. 顶部状态栏 (小字体)
+    oled_set_font_small();
+    oled_draw_string(2, 2, wifi_connected ? "[W]" : "[ ]");
+    oled_draw_string(92, 2, auto_mode ? "AUTO" : "MANUAL");
+    oled_draw_line(0, 12, 127, 12);
     
-    if (auto_mode) {
-        oled_draw_string(100, 2, "AUTO");
-    } else {
-        oled_draw_string(88, 2, "MANUAL");
-    }
-    
-    oled_draw_line(0, 10, 127, 10);
-    
+    // 2. 温湿度 (大字体 8x16)
+    oled_set_font_small();
     oled_draw_string(2, 18, "T:");
+    oled_set_font_large();
     snprintf(buf, sizeof(buf), "%.0fC", temp);
     oled_draw_string(14, 18, buf);
     
-    oled_draw_string(70, 18, "H:");
+    oled_set_font_small();
+    oled_draw_string(64, 18, "H:");
+    oled_set_font_large();
     snprintf(buf, sizeof(buf), "%.0f%%", humi);
-    oled_draw_string(82, 18, buf);
+    oled_draw_string(76, 18, buf);
     
-    oled_draw_line(0, 26, 127, 26);
+    // 3. 分割线
+    oled_draw_line(0, 38, 127, 38);
     
-    oled_draw_string(2, 34, "AIR:");
-    const char* quality = get_air_quality_level(gas_raw);
-    oled_draw_string(26, 34, quality);
-    
-    if (gas_raw >= 0) {
-        oled_draw_string(90, 34, gas_raw ? "OK" : "!");
+    // 4. 空气质量 (小字体)
+    oled_set_font_small();
+    oled_draw_string(2, 42, "AIR:");
+    if (gas_raw < 0) {
+        oled_draw_string(26, 42, "N/A");
+    } else {
+        oled_draw_string(26, 42, gas_raw == 0 ? "POOR" : "GOOD");
+        oled_draw_string(90, 42, gas_raw ? "OK" : "!");
     }
     
-    oled_draw_line(0, 42, 127, 42);
-    
-    oled_draw_string(2, 52, "FAN:");
+    // 5. 风扇及进度条 (小字体)
+    oled_draw_string(2, 54, "FAN:");
     snprintf(buf, sizeof(buf), "%d%%", fan_speed);
-    oled_draw_string(30, 52, buf);
-    oled_draw_progress_bar(55, 50, 70, 10, fan_speed);
+    oled_draw_string(30, 54, buf);
+    oled_draw_progress_bar(55, 52, 70, 10, fan_speed);
     
     oled_update();
 }
