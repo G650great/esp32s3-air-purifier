@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MQTT测试</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+    <h1>MQTT连接测试</h1>
+    <div id="status">状态: 未连接</div>
+    <div id="messages"></div>
+    <br>
+    <button onclick="sendFan(0)">发送 fan:0</button>
+    <button onclick="sendFan(50)">发送 fan:50</button>
+    <button onclick="sendFan(100)">发送 fan:100</button>
+    <button onclick="sendMode(0)">发送 mode:0</button>
+    <button onclick="sendMode(1)">发送 mode:1</button>
+    
+    <script>
+        const client = mqtt.connect('ws://120.25.234.148:9001', {
+            clientId: 'test_' + Math.random().toString(16).substr(2, 8)
+        });
+        
+        client.on('connect', function() {
+            document.getElementById('status').innerHTML = '状态: 已连接';
+            client.subscribe('fan/status', function(err) {
+                if (!err) console.log('订阅成功');
+            });
+        });
+        
+        client.on('message', function(topic, message) {
+            document.getElementById('messages').innerHTML += '<br>收到: ' + message.toString();
+        });
+        
+        client.on('error', function(err) {
+            document.getElementById('status').innerHTML = '状态: 错误 - ' + err;
+        });
+        
+        function sendFan(speed) {
+            client.publish('fan/cmd', 'fan:' + speed);
+            document.getElementById('messages').innerHTML += '<br>发送: fan:' + speed;
+        }
+        
+        function sendMode(mode) {
+            client.publish('fan/cmd', 'mode:' + mode);
+            document.getElementById('messages').innerHTML += '<br>发送: mode:' + mode;
+        }
+    </script>
+</body>
+</html>

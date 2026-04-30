@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>简单测试</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+    <h1>MQTT连接测试</h1>
+    <div id="status">连接中...</div>
+    <div id="data">等待数据...</div>
+    
+    <script>
+        const status = document.getElementById('status');
+        const dataDiv = document.getElementById('data');
+        
+        // MQTT配置
+        const MQTT_BROKER = 'ws://120.25.234.148:9001';
+        const MQTT_TOPICS = {
+            status: 'fan/status',
+            cmd: 'fan/cmd'
+        };
+        
+        let mqttClient = null;
+        let mqttConnected = false;
+        
+        function connectMQTT() {
+            const clientId = 'simple_test_' + Math.random().toString(16).substr(2, 8);
+            
+            try {
+                mqttClient = mqtt.connect(MQTT_BROKER, {
+                    clientId: clientId,
+                    clean: true,
+                    connectTimeout: 10000,
+                    reconnectPeriod: 3000,
+                    keepalive: 60
+                });
+
+                mqttClient.on('connect', function() {
+                    console.log('[MQTT] Connected');
+                    mqttConnected = true;
+                    status.innerHTML = '<span style="color:green">已连接</span>';
+                    
+                    mqttClient.subscribe(MQTT_TOPICS.status, function(err) {
+                        if (err) {
+                            console.error('[MQTT] Subscribe failed:', err);
+                        } else {
+                            console.log('[MQTT] Subscribed');
+                        }
+                    });
+                });
+
+                mqttClient.on('message', function(topic, message) {
+                    const payload = message.toString();
+                    console.log('[MQTT] Received:', payload);
+                    dataDiv.innerHTML = '<pre>' + payload + '</pre>';
+                });
+
+                mqttClient.on('error', function(err) {
+                    console.error('[MQTT] Error:', err);
+                    status.innerHTML = '<span style="color:red">错误</span>';
+                });
+
+                mqttClient.on('close', function() {
+                    console.log('[MQTT] Closed');
+                    mqttConnected = false;
+                    status.innerHTML = '<span style="color:orange">断开</span>';
+                });
+
+            } catch (e) {
+                console.error('[MQTT] Exception:', e);
+                status.innerHTML = '<span style="color:red">异常</span>';
+            }
+        }
+        
+        connectMQTT();
+    </script>
+</body>
+</html>

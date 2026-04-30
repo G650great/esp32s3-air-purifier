@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MQTT调试</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .log { margin: 5px 0; padding: 5px; background: #f0f0f0; }
+        .error { color: red; }
+        .success { color: green; }
+        .data { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>MQTT连接调试</h1>
+    <div id="status">状态: 初始化...</div>
+    <div id="logs"></div>
+    
+    <script>
+        const logs = document.getElementById('logs');
+        const status = document.getElementById('status');
+        
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = 'log ' + type;
+            div.innerText = new Date().toLocaleTimeString() + ' - ' + msg;
+            logs.appendChild(div);
+            console.log(msg);
+        }
+        
+        log('尝试连接MQTT Broker: ws://120.25.234.148:9001');
+        
+        try {
+            const client = mqtt.connect('ws://120.25.234.148:9001', {
+                clientId: 'debug_' + Math.random().toString(16).substr(2, 8),
+                clean: true,
+                connectTimeout: 10000,
+                reconnectPeriod: 3000
+            });
+            
+            client.on('connect', function() {
+                log('✓ 已连接到MQTT Broker', 'success');
+                status.innerHTML = '<span style="color:green">已连接</span>';
+                
+                client.subscribe('fan/status', function(err) {
+                    if (err) {
+                        log('✗ 订阅失败: ' + err, 'error');
+                    } else {
+                        log('✓ 已订阅 fan/status', 'success');
+                    }
+                });
+            });
+            
+            client.on('message', function(topic, message) {
+                log('收到数据 [' + topic + ']: ' + message.toString(), 'data');
+            });
+            
+            client.on('error', function(err) {
+                log('✗ 错误: ' + err, 'error');
+                status.innerHTML = '<span style="color:red">错误</span>';
+            });
+            
+            client.on('close', function() {
+                log('连接关闭', 'error');
+                status.innerHTML = '<span style="color:orange">断开</span>';
+            });
+            
+            client.on('offline', function() {
+                log('离线', 'error');
+            });
+            
+        } catch(e) {
+            log('✗ 异常: ' + e.message, 'error');
+        }
+    </script>
+</body>
+</html>
