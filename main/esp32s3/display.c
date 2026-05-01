@@ -5,6 +5,21 @@
 #include <stdio.h>
 #include <string.h>
 
+static void draw_page_indicator(uint8_t active) {
+    const int y = 60;
+    const int s = 3;
+    const int gap = 6;
+    const int x0 = 112;
+    for (int i = 0; i < 2; i++) {
+        int x = x0 + i * gap;
+        if (i == (int)active) {
+            oled_fill_rect(x, y, s, s);
+        } else {
+            oled_draw_rect(x, y, s, s);
+        }
+    }
+}
+
 void display_init(void) {
     oled_init();
 }
@@ -24,60 +39,96 @@ void display_splash_screen(void) {
     vTaskDelay(pdMS_TO_TICKS(3000));
 }
 
-static const char* get_air_quality_level(int gas_raw) {
-    if (gas_raw < 0) {
-        return "N/A";
-    } else if (gas_raw == 0) {
-        return "POOR";
-    } else {
-        return "GOOD";
-    }
-}
-
 void display_main_dashboard(float temp, float humi, uint8_t fan_speed, int auto_mode, int gas_raw, int wifi_connected) {
     char buf[32];
-    
     oled_clear();
-    
-    if (wifi_connected) {
-        oled_draw_string(2, 2, "[W]");
-    } else {
-        oled_draw_string(2, 2, "[ ]");
-    }
-    
-    if (auto_mode) {
-        oled_draw_string(100, 2, "AUTO");
-    } else {
-        oled_draw_string(88, 2, "MANUAL");
-    }
-    
-    oled_draw_line(0, 10, 127, 10);
-    
-    oled_draw_string(2, 18, "T:");
-    snprintf(buf, sizeof(buf), "%.0fC", temp);
-    oled_draw_string(14, 18, buf);
-    
-    oled_draw_string(70, 18, "H:");
-    snprintf(buf, sizeof(buf), "%.0f%%", humi);
-    oled_draw_string(82, 18, buf);
-    
-    oled_draw_line(0, 26, 127, 26);
-    
-    oled_draw_string(2, 34, "AIR:");
-    const char* quality = get_air_quality_level(gas_raw);
-    oled_draw_string(26, 34, quality);
-    
-    if (gas_raw >= 0) {
-        oled_draw_string(90, 34, gas_raw ? "OK" : "!");
-    }
-    
+
+    oled_draw_rect(0, 0, 128, 64);
+    oled_set_font_small();
+    oled_draw_string(2, 2, wifi_connected ? "[W]" : "[ ]");
+    oled_draw_string(50, 2, "HOME");
+    oled_draw_string(92, 2, auto_mode ? "AUTO" : "MAN");
+    oled_draw_line(0, 12, 127, 12);
+
+    oled_draw_line(63, 12, 63, 41);
     oled_draw_line(0, 42, 127, 42);
-    
-    oled_draw_string(2, 52, "FAN:");
+
+    oled_draw_string(6, 14, "TEMP");
+    oled_set_font_large();
+    snprintf(buf, sizeof(buf), "%.0fC", temp);
+    oled_draw_string((64 - (int)strlen(buf) * 8) / 2, 22, buf);
+
+    oled_set_font_small();
+    oled_draw_string(70, 14, "HUM");
+    oled_set_font_large();
+    snprintf(buf, sizeof(buf), "%.0f%%", humi);
+    oled_draw_string(64 + (64 - (int)strlen(buf) * 8) / 2, 22, buf);
+
+    oled_set_font_small();
+    oled_draw_string(6, 46, "AIR");
+    if (gas_raw < 0) {
+        oled_draw_string(30, 46, "N/A");
+    } else {
+        oled_draw_string(30, 46, gas_raw == 0 ? "POOR" : "GOOD");
+        oled_draw_string(54, 46, gas_raw ? "OK" : "!");
+    }
+
+    oled_draw_string(70, 46, "FAN");
     snprintf(buf, sizeof(buf), "%d%%", fan_speed);
-    oled_draw_string(30, 52, buf);
-    oled_draw_progress_bar(55, 50, 70, 10, fan_speed);
-    
+    oled_draw_string(94, 46, buf);
+    oled_draw_progress_bar(70, 54, 52, 8, fan_speed);
+
+    draw_page_indicator(0);
+    oled_update();
+}
+
+void display_detail_screen(float temp, float humi, uint8_t fan_speed, int auto_mode, int gas_raw, int gas_mv, float gas_ppm, int wifi_connected) {
+    char buf[32];
+    oled_clear();
+
+    oled_draw_rect(0, 0, 128, 64);
+    oled_set_font_small();
+    oled_draw_string(2, 2, wifi_connected ? "[W]" : "[ ]");
+    oled_draw_string(44, 2, "DETAIL");
+    oled_draw_string(92, 2, auto_mode ? "AUTO" : "MAN");
+    oled_draw_line(0, 12, 127, 12);
+
+    oled_draw_line(63, 12, 63, 41);
+    oled_draw_line(0, 42, 127, 42);
+
+    oled_draw_string(6, 14, "PPM");
+    oled_set_font_large();
+    if (gas_raw < 0 || gas_ppm < 0.0f) {
+        strcpy(buf, "--");
+    } else {
+        snprintf(buf, sizeof(buf), "%.0f", gas_ppm);
+    }
+    oled_draw_string((64 - (int)strlen(buf) * 8) / 2, 22, buf);
+
+    oled_set_font_small();
+    oled_draw_string(70, 14, "FAN");
+    oled_set_font_large();
+    snprintf(buf, sizeof(buf), "%d%%", fan_speed);
+    oled_draw_string(64 + (64 - (int)strlen(buf) * 8) / 2, 22, buf);
+
+    oled_set_font_small();
+    if (gas_raw < 0) {
+        oled_draw_string(6, 46, "AIR:N/A");
+    } else {
+        oled_draw_string(6, 46, gas_raw == 0 ? "AIR:POOR" : "AIR:GOOD");
+    }
+
+    if (gas_raw < 0) {
+        oled_draw_string(6, 54, "MV:--");
+    } else {
+        snprintf(buf, sizeof(buf), "MV:%d", gas_mv);
+        oled_draw_string(6, 54, buf);
+    }
+
+    snprintf(buf, sizeof(buf), "T:%.1fC H:%.0f%%", temp, humi);
+    oled_draw_string(60, 54, buf);
+
+    draw_page_indicator(1);
     oled_update();
 }
 

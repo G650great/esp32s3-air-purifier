@@ -81,7 +81,11 @@ void key_scan_task(void *arg) {
         if (key_state_11 == 1 && last_key_state_11 == 0) {
             uint32_t press_duration = (esp_timer_get_time() / 1000) - press_start_11;
             
-            if (press_duration > 50) {
+            if (press_duration > 1000) {
+                if (key_callback && power_on) {
+                    key_callback(KEY_EVENT_LONG_PRESS, KEY_ID_11);
+                }
+            } else if (press_duration > 50) {
                 power_on = !power_on;
                 if (power_on) {
                     ESP_LOGI(TAG, "Power ON");
